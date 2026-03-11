@@ -83,6 +83,145 @@ The I/O loop uses a **drain-then-fill strategy** to prioritize receiving data be
 The current architecture isolates the physical communication layer from higher SAS protocol logic.
 
 ```
-                +---------
+                +---------------------------+
+                |      Future SAS Layers    |
+                |   (link + protocol)       |
+                +------------+--------------+
+                             |
+                       RX / TX queues
+                             |
+                +------------v--------------+
+                |      Physical Layer       |
+                |                           |
+                |   UART driver             |
+                |   Wakeup bit handling     |
+                |   Lock-free ring buffers  |
+                +------------+--------------+
+                             |
+                +------------v--------------+
+                |        UART Hardware      |
+                +---------------------------+
 ```
+
+This design allows the physical layer to remain **independent, testable, and reusable**.
+
+---
+
+# Data Flow
+
+### Receive Path
+
+```
+UART RX
+   ↓
+hardware polling
+   ↓
+wakeup bit detection
+   ↓
+RX ring buffer
+   ↓
+future SAS link layer
+```
+
+### Transmit Path
+
+```
+future SAS link layer
+   ↓
+TX ring buffer
+   ↓
+UART driver
+   ↓
+hardware transmission
+```
+
+---
+
+# Example Usage (Conceptual)
+
+Future SAS layers will interact with the physical layer through the ring buffers:
+
+```cpp
+uint16_t word;
+
+/* Receive byte */
+if (rxBuffer.pop(word))
+{
+    uint8_t data = word & 0xFF;
+    bool wakeup  = word & 0x100;
+}
+
+/* Transmit byte */
+uint16_t tx = data;
+if (wakeup)
+    tx |= 0x100;
+
+txBuffer.push(tx);
+```
+
+---
+
+# Building the Project
+
+The project uses **CMake** and requires a **C++14 compatible compiler**.
+
+```
+git clone https://github.com/<your-username>/saslib.git
+cd saslib
+
+mkdir build
+cd build
+
+cmake ..
+make
+```
+
+---
+
+# Project Status
+
+Current implementation:
+
+```
+✓ UART physical layer
+✓ SAS wakeup bit detection
+✓ lock-free SPSC ring buffers
+✓ polling communication loop
+```
+
+Planned future work:
+
+```
+• SAS link layer implementation
+• message parser
+• command dispatcher
+• protocol state machine
+```
+
+---
+
+# Contributing
+
+Contributions are welcome.
+
+Typical contributions include:
+
+* improvements to UART driver robustness
+* portability enhancements
+* testing tools for SAS communication
+* implementation of higher protocol layers
+
+Please open an issue before submitting large changes so the design can be discussed.
+
+---
+
+# License
+
+This project is licensed under the **Apache 2.0 License**.
+
+---
+
+# Author
+
+Luiz Cressoni
 
