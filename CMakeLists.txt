@@ -10,4 +10,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(include)
 
-add_executable(sasSerial src/main.cpp)
+set( SERIALPORT
+    src/uartdriver.cpp src/uartdriver.h
+    src/ringbuffer.cpp src/ringbuffer.h
+    src/serialportsas.cpp src/serialportsas.h
+)
+
+add_executable(sasSerial src/main.cpp ${SERIALPORT})
